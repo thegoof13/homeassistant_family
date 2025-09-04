@@ -1,8 +1,8 @@
 blueprint:
-  name: Family Light — Orange Hour, then Red & Off
+  name: Family Light — Orange Hour (15%), then Red (1%) & Off (with settle delay)
   description: >
-    At a set time, change light.family_light from red to orange for the specified duration.
-    After the duration, set it back to red and then turn it off.
+    At a set time, change light.family_light from red (1%) to orange (15%) for the duration.
+    After the duration, set it back to red (1%), wait a short settle delay, then turn it off.
   domain: automation
   input:
     start_time:
@@ -17,9 +17,21 @@ blueprint:
       selector:
         duration: {}
 
-    brightness_pct:
-      name: Brightness (%)
-      default: 100
+    brightness_orange_pct:
+      name: Orange brightness (%)
+      description: Brightness while orange
+      default: 15
+      selector:
+        number:
+          min: 1
+          max: 100
+          unit_of_measurement: "%"
+          mode: slider
+
+    brightness_red_pct:
+      name: Red brightness (%)
+      description: Brightness while red (before/after)
+      default: 1
       selector:
         number:
           min: 1
@@ -29,11 +41,24 @@ blueprint:
 
     transition_secs:
       name: Transition (seconds)
+      description: Fade time for color/turn off
       default: 1
       selector:
         number:
           min: 0
           max: 10
+          step: 1
+          unit_of_measurement: s
+          mode: slider
+
+    post_red_settle_secs:
+      name: Settle delay after returning to red (seconds)
+      description: Wait this long after switching back to red before turning off
+      default: 3
+      selector:
+        number:
+          min: 0
+          max: 30
           step: 1
           unit_of_measurement: s
           mode: slider
@@ -47,24 +72,31 @@ trigger:
 condition: []
 
 action:
+  # Switch to Orange @ specified brightness
   - service: light.turn_on
     target:
       entity_id: light.family_light
     data:
-      hs_color: [30, 100]      # orange
-      brightness_pct: !input brightness_pct
+      hs_color: [30, 100]   # orange
+      brightness_pct: !input brightness_orange_pct
       transition: !input transition_secs
 
   - delay: !input duration
 
+  # Back to Red @ specified brightness
   - service: light.turn_on
     target:
       entity_id: light.family_light
     data:
-      hs_color: [0, 100]       # red
-      brightness_pct: !input brightness_pct
+      hs_color: [0, 100]    # red
+      brightness_pct: !input brightness_red_pct
       transition: !input transition_secs
 
+  # Ensure state/brightness is applied before turning off
+  - delay:
+      seconds: !input post_red_settle_secs
+
+  # Then off
   - service: light.turn_off
     target:
       entity_id: light.family_light
