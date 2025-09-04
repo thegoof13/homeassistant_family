@@ -1,0 +1,140 @@
+blueprint:
+  name: Kids Night Light — Dawn Green Ramp, Hold, Back to Red & Off
+  description: >
+    At the set time (default 06:05), ensure the light is red (1%), then fade to green (100%)
+    over the configured transition (default 300s), hold green for the duration (default 2h),
+    then return to red (1%), wait a short settle delay (default 5s), and turn off.
+  domain: automation
+  input:
+    target_light:
+      name: Target light
+      description: The night light to control
+      selector:
+        entity:
+          domain: light
+      default: light.kids_night_light
+
+    start_time:
+      name: Start time
+      selector:
+        time: {}
+      default: "06:05:00"
+
+    green_hold_duration:
+      name: Green hold duration
+      description: How long to stay green before returning to red and turning off
+      default: "02:00:00"
+      selector:
+        duration: {}
+
+    red_brightness_pct:
+      name: Red brightness (%)
+      description: Brightness while red (before/after)
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 100
+          unit_of_measurement: "%"
+          mode: slider
+
+    green_brightness_pct:
+      name: Green brightness (%)
+      description: Brightness while green
+      default: 100
+      selector:
+        number:
+          min: 1
+          max: 100
+          unit_of_measurement: "%"
+          mode: slider
+
+    green_transition_secs:
+      name: Green ramp transition (seconds)
+      description: Fade time from red 1% to green 100%
+      default: 300
+      selector:
+        number:
+          min: 0
+          max: 900
+          step: 1
+          unit_of_measurement: s
+          mode: slider
+
+    transition_secs:
+      name: Regular transition (seconds)
+      description: Short transition when setting red or turning off
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 10
+          step: 1
+          unit_of_measurement: s
+          mode: slider
+
+    post_red_settle_secs:
+      name: Settle delay after returning to red (seconds)
+      description: Wait this long after switching back to red before turning off
+      default: 5
+      selector:
+        number:
+          min: 0
+          max: 30
+          step: 1
+          unit_of_measurement: s
+          mode: slider
+
+mode: restart
+
+trigger:
+  - platform: time
+    at: !input start_time
+
+condition: []
+
+action:
+  # Ensure we start from red @ 1%
+  - service: light.turn_on
+    target:
+      entity_id: !input target_light
+    data:
+      hs_color: [0, 100]          # red
+      brightness_pct: !input red_brightness_pct
+      transition: !input transition_secs
+
+  # Small settle to make sure the baseline is applied before the long ramp
+  - delay:
+      seconds: 1
+
+  # Ramp to green @ 100% over the configured transition
+  - service: light.turn_on
+    target:
+      entity_id: !input target_light
+    data:
+      hs_color: [120, 100]        # green
+      brightness_pct: !input green_brightness_pct
+      transition: !input green_transition_secs
+
+  # Stay green for the requested duration
+  - delay: !input green_hold_duration
+
+  # Back to red @ 1%
+  - service: light.turn_on
+    target:
+      entity_id: !input target_light
+    data:
+      hs_color: [0, 100]          # red
+      brightness_pct: !input red_brightness_pct
+      transition: !input transition_secs
+
+  # Ensure state is applied before turning off
+  - delay:
+      seconds: !input post_red_settle_secs
+
+  # Then off
+  - service: light.turn_off
+    target:
+      entity_id: !input target_light
+    data:
+      transition: !input transition_secs
