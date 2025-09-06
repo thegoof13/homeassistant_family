@@ -1,9 +1,9 @@
 blueprint:
-  name: Kids Night Light — 5-Minute Step Ramp to Green, Hold, Back to Red & Off (Tuya-friendly)
+  name: Kids Night Light — 5-Minute Step Ramp to Green, Hold, Back to Red & Off (Tuya-friendly, Weekdays Only)
   description: >
-    At the set time (default 06:05), step the light from red (1%) to green (100%) over 5 minutes
-    using minute-by-minute colour/brightness changes (no transitions). Hold green for the duration
-    (default 2h), then return to red (1%), wait a short settle delay (default 5s), and turn off.
+    Weekdays only (Mon–Fri): At the set time (default 06:05), step the light from red (1%) to green (100%)
+    over 5 minutes using minute-by-minute colour/brightness changes (no transitions). Hold green for the
+    duration (default 2h), then return to red (1%), wait a short settle delay (default 5s), and turn off.
     Palette: Red → Red-Orange (h=20) → Yellow (60) → Yellow-Green (90) → Green (120), sat=100.
 
   domain: automation
@@ -105,7 +105,15 @@ trigger:
   - platform: time
     at: !input start_time
 
-condition: []
+# Only run Monday–Friday
+condition:
+  - condition: time
+    weekday:
+      - mon
+      - tue
+      - wed
+      - thu
+      - fri
 
 action:
   # Minute 0 — ensure starting state: Red @ 1%
@@ -113,61 +121,47 @@ action:
     target:
       entity_id: !input target_light
     data:
-      hs_color:
-        - 0
-        - !input saturation_pct
+      hs_color: [0, !input saturation_pct]
       brightness_pct: !input red_brightness_pct
 
-  - delay:
-      seconds: !input minute_step_secs
+  - delay: { seconds: !input minute_step_secs }
 
   # Minute 1 — Red-Orange @ 25%
   - service: light.turn_on
     target:
       entity_id: !input target_light
     data:
-      hs_color:
-        - !input orange_hue_deg
-        - !input saturation_pct
+      hs_color: [!input orange_hue_deg, !input saturation_pct]
       brightness_pct: 25
 
-  - delay:
-      seconds: !input minute_step_secs
+  - delay: { seconds: !input minute_step_secs }
 
   # Minute 2 — Yellow @ 50%
   - service: light.turn_on
     target:
       entity_id: !input target_light
     data:
-      hs_color:
-        - 60
-        - !input saturation_pct
+      hs_color: [60, !input saturation_pct]
       brightness_pct: 50
 
-  - delay:
-      seconds: !input minute_step_secs
+  - delay: { seconds: !input minute_step_secs }
 
   # Minute 3 — Yellow-Green @ 75%
   - service: light.turn_on
     target:
       entity_id: !input target_light
     data:
-      hs_color:
-        - 90
-        - !input saturation_pct
+      hs_color: [90, !input saturation_pct]
       brightness_pct: 75
 
-  - delay:
-      seconds: !input minute_step_secs
+  - delay: { seconds: !input minute_step_secs }
 
   # Minute 4 — Green @ target brightness
   - service: light.turn_on
     target:
       entity_id: !input target_light
     data:
-      hs_color:
-        - 120
-        - !input saturation_pct
+      hs_color: [120, !input saturation_pct]
       brightness_pct: !input green_brightness_pct
 
   # Hold green for the configured duration
@@ -178,14 +172,11 @@ action:
     target:
       entity_id: !input target_light
     data:
-      hs_color:
-        - 0
-        - !input saturation_pct
+      hs_color: [0, !input saturation_pct]
       brightness_pct: !input red_brightness_pct
 
   # Ensure the red state is applied before turning off
-  - delay:
-      seconds: !input post_red_settle_secs
+  - delay: { seconds: !input post_red_settle_secs }
 
   # Then off
   - service: light.turn_off
