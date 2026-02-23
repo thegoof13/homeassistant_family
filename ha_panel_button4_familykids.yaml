@@ -33,13 +33,17 @@ actions:
                     state: "on"
                 sequence:
                   - target:
-                      entity_id: light.genio_pixel_rgb_led_bar_light
+                      entity_id:
+                        - light.genio_pixel_rgb_led_bar_light
+                        - light.family_light
                     data:
                       transition: "{{ transition_secs | int }}"
                     action: light.turn_off
             default:
               - target:
-                  entity_id: light.genio_pixel_rgb_led_bar_light
+                  entity_id:
+                    - light.genio_pixel_rgb_led_bar_light
+                    - light.family_light
                 data:
                   transition: "{{ transition_secs | int }}"
                 action: light.turn_on
@@ -70,6 +74,7 @@ actions:
                   - target:
                       entity_id:
                         - light.genio_pixel_rgb_led_bar_light
+                        - light.family_light
                         - light.kids_night_light
                     data:
                       hs_color: "{{ orange_hs }}"
@@ -80,6 +85,7 @@ actions:
               - target:
                   entity_id:
                     - light.genio_pixel_rgb_led_bar_light
+                    - light.family_light
                     - light.kids_night_light
                 data:
                   hs_color:
