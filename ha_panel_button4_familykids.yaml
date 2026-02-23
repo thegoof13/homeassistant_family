@@ -1,0 +1,112 @@
+alias: >-
+  Panel Button 4 — Family+Kids (click=colour toggle; double_click=family power;
+  press=kids power)
+triggers:
+  - entity_id: event.4_panel_button_4
+    trigger: state
+  - entity_id: event.zigbee_scene_switch_button_4
+    trigger: state
+    alias: When 4 Panel Lounge Button 4 changes state or any attributes
+conditions:
+  - condition: template
+    value_template: |
+      {{ trigger.to_state is not none
+         and trigger.to_state.attributes is not none
+         and trigger.to_state.attributes.get('event_type') in ['click','double_click','press'] }}
+  - condition: template
+    value_template: >
+      {% set lt =
+      state_attr('automation.panel_button_4_family_kids_click_colour_toggle_double_click_family_power_press_kids_power',
+      'last_triggered') %} {{ lt is none or (now() - lt).total_seconds() > 1 }}
+actions:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ trigger.to_state.attributes.get('event_type') == 'double_click'
+              }}
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: state
+                    entity_id: light.genio_pixel_rgb_led_bar_light
+                    state: "on"
+                sequence:
+                  - target:
+                      entity_id: light.genio_pixel_rgb_led_bar_light
+                    data:
+                      transition: "{{ transition_secs | int }}"
+                    action: light.turn_off
+            default:
+              - target:
+                  entity_id: light.genio_pixel_rgb_led_bar_light
+                data:
+                  transition: "{{ transition_secs | int }}"
+                action: light.turn_on
+      - conditions:
+          - condition: template
+            value_template: |
+              {{ trigger.to_state.attributes.get('event_type') == 'click' }}
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {% set st_f = states('light.genio_pixel_rgb_led_bar_light') %} {% set hs_f
+                      = state_attr('light.genio_pixel_rgb_led_bar_light','hs_color') %} {% set
+                      bri_f = state_attr('light.genio_pixel_rgb_led_bar_light','brightness') |
+                      int(0) %} {% set st_k = states('light.kids_night_light')
+                      %} {% set hs_k =
+                      state_attr('light.kids_night_light','hs_color') %} {% set
+                      bri_k = state_attr('light.kids_night_light','brightness')
+                      | int(0) %} {% set is_red_f = hs_f is sequence and
+                      (hs_f[0] | int(0) == 0) %} {% set is_low_f = bri_f <= 13
+                      %}  {# ~1/255 with a little slack #} {% set is_red_k =
+                      hs_k is sequence and (hs_k[0] | int(0) == 0) %} {% set
+                      is_low_k = bri_k <= 13 %} {{ st_f == 'off' or (st_f ==
+                      'on' and is_red_f and is_low_f)
+                         or st_k == 'off' or (st_k == 'on' and is_red_k and is_low_k) }}
+                sequence:
+                  - target:
+                      entity_id:
+                        - light.genio_pixel_rgb_led_bar_light
+                        - light.kids_night_light
+                    data:
+                      hs_color: "{{ orange_hs }}"
+                      brightness_pct: "{{ orange_pct | int }}"
+                      transition: "{{ transition_secs | int }}"
+                    action: light.turn_on
+            default:
+              - target:
+                  entity_id:
+                    - light.genio_pixel_rgb_led_bar_light
+                    - light.kids_night_light
+                data:
+                  hs_color:
+                    - 0
+                    - 100
+                  brightness_pct: "{{ red_pct | int }}"
+                  transition: "{{ transition_secs | int }}"
+                action: light.turn_on
+      - conditions:
+          - condition: template
+            value_template: |
+              {{ trigger.to_state.attributes.get('event_type') == 'press' }}
+        sequence:
+          - target:
+              entity_id: light.kids_night_light
+            action: light.toggle
+  - wait_template: >
+      {% set et = state_attr('event.4_panel_button_4','event_type') %} {{ et not
+      in ['click','double_click','press'] }}
+    timeout: "00:00:02"
+    continue_on_timeout: true
+mode: single
+variables:
+  transition_secs: 1
+  orange_hs:
+    - 20
+    - 100
+  orange_pct: 27
+  red_pct: 1
+
