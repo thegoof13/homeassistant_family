@@ -1,8 +1,8 @@
 blueprint:
   name: Family Light — Fade to Light Orange & Stay On
   description: >
-    At a set time, fade light.family_light to a light orange at the chosen
-    brightness and leave it on.
+    At a set time, fade light.genio_pixel_rgb_led_bar_light (Ambient Light bar)
+    to a light orange at the chosen brightness and leave it on.
   domain: automation
   input:
     start_time:
@@ -45,7 +45,7 @@ action:
   # Fade to light orange and leave the light on
   - service: light.turn_on
     target:
-      entity_id: light.family_light
+      entity_id: light.genio_pixel_rgb_led_bar_light
     data:
       hs_color: [30, 75]    # light orange
       brightness_pct: !input brightness_orange_pct
